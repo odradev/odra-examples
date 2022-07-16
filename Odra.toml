@@ -1,0 +1,3 @@
+name = "owned_token_template"
+[contracts]
+owned_token = { path = "src/owned_token.rs", name = "owned_token", fqn = "owned_token_template::OwnedToken"}

@@ -1,0 +1,16 @@
+[package]
+name = "owned_token_template"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# odra = { git = "https://github.com/odradev/odra", default-features = false }
+odra = { path = "../odra/core", default-features = false }
+
+[features]
+default = ["mock-vm"]
+mock-vm = ["odra/mock-vm"]
+wasm-test = ["odra/wasm-test"]
+wasm = ["odra/wasm"]
