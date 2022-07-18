@@ -10,6 +10,7 @@ pub struct Ownable {
 
 #[odra::module]
 impl Ownable {
+    #[odra(init)]
     pub fn init(&self, owner: Address) {
         if self.owner.get().is_some() {
             ContractEnv::revert(Error::OwnerIsAleadyInitialzed)
@@ -71,70 +72,61 @@ pub struct OwnershipChanged {
     pub new_owner: Address,
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use odra::{assert_events, TestEnv};
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use odra::{assert_events, TestEnv, types::VmError};
+    use super::*;
 
-//     #[test]
-//     fn initialization_works() {
-//         let ownable = Ownable::deploy();
-//         let owner = TestEnv::get_account(0);
-        
-//         TestEnv::assert_exception(Error::OnwerIsNotInitialized, || {
-//             let _ = ownable.get_owner();
-//         });
+    fn setup() -> (Address, OwnableRef) {
+        let owner = TestEnv::get_account(0);
+        let ownable = Ownable::deploy_init(owner);
+        (owner, ownable)
+    }
 
-//         ownable.init(owner);
+    #[test]
+    fn initialization_works() {
+        let (owner, ownable) = setup();
+        assert_eq!(ownable.get_owner(), owner);
+        assert_events!(
+            ownable,
+            OwnershipChanged {
+                prev_owner: None,
+                new_owner: owner
+            }
+        );
+    }
 
-//         assert_eq!(ownable.get_owner(), owner);
-//         assert_events!(
-//             ownable,
-//             OwnershipChanged {
-//                 prev_owner: None,
-//                 new_owner: owner
-//             }
-//         );
-//     }
+    #[test]
+    fn second_initialization_fails() {
+        let (owner, ownable) = setup();
+        TestEnv::assert_exception(OdraError::VmError(VmError::InvalidContext), || {
+            ownable.init(owner);
+        });
+    }
 
-//     #[test]
-//     fn second_initialization_fails() {
-//         let ownable = Ownable::deploy();
-//         let owner = TestEnv::get_account(0);
+    #[test]
+    fn owner_can_change_ownership() {
+        let (owner, ownable) = setup();
+        let new_owner = TestEnv::get_account(1);
+        TestEnv::set_caller(&owner);
+        ownable.change_ownership(new_owner);
+        assert_eq!(ownable.get_owner(), new_owner);
+        assert_events!(
+            ownable,
+            OwnershipChanged {
+                prev_owner: Some(owner),
+                new_owner
+            }
+        );
+    }
 
-//         ownable.init(owner);
-
-//         TestEnv::assert_exception(Error::OwnerIsAleadyInitialzed, || ownable.init(owner));
-//     }
-
-//     #[test]
-//     fn owner_can_change_ownership() {
-//         let ownable = Ownable::deploy();
-//         let (owner, new_owner) = (TestEnv::get_account(0), TestEnv::get_account(1));
-//         ownable.init(owner);
-
-//         TestEnv::set_caller(&owner);
-//         ownable.change_ownership(new_owner);
-
-//         assert_eq!(ownable.get_owner(), new_owner);
-//         assert_events!(
-//             ownable,
-//             OwnershipChanged {
-//                 prev_owner: Some(owner),
-//                 new_owner
-//             }
-//         );
-//     }
-
-//     #[test]
-//     fn non_owner_cannot_change_ownership() {
-//         let ownable = Ownable::deploy();
-//         let (owner, new_owner) = (TestEnv::get_account(0), TestEnv::get_account(1));
-//         ownable.init(owner);
-
-//         ownable.change_ownership(new_owner);
-//         TestEnv::assert_exception(Error::NotOwner, || {
-//             ownable.change_ownership(new_owner);
-//         });
-//     }
-// }
+    #[test]
+    fn non_owner_cannot_change_ownership() {
+        let (owner, ownable) = setup();
+        let new_owner = TestEnv::get_account(1);
+        ownable.change_ownership(new_owner);
+        TestEnv::assert_exception(Error::NotOwner, || {
+            ownable.change_ownership(new_owner);
+        });
+    }
+}

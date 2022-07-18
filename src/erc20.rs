@@ -15,6 +15,7 @@ pub struct Erc20 {
 
 #[odra::module]
 impl Erc20 {
+    #[odra(init)]
     pub fn init(&self, name: String, symbol: String, decimals: u8, initial_supply: U256) {
         let caller = ContractEnv::caller();
         self.name.set(name);
@@ -144,139 +145,137 @@ impl Into<OdraError> for Error {
         }
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use odra::{assert_events, TestEnv};
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use odra::{assert_events, TestEnv};
+    const NAME: &str = "Plascoin";
+    const SYMBOL: &str = "PLS";
+    const DECIMALS: u8 = 10;
+    const INITIAL_SUPPLY: u32 = 10_000;
 
-//     const NAME: &str = "Plascoin";
-//     const SYMBOL: &str = "PLS";
-//     const DECIMALS: u8 = 10;
-//     const INITIAL_SUPPLY: u32 = 10_000;
+    fn setup() -> Erc20Ref {
+        let erc20 = Erc20::deploy_init(
+            NAME.to_string(),
+            SYMBOL.to_string(),
+            DECIMALS,
+            INITIAL_SUPPLY.into(),
+        );
+        erc20
+    }
 
-//     fn setup() -> Erc20Ref {
-//         let erc20 = Erc20::deploy();
-//         erc20.init(
-//             SYMBOL.to_string(),
-//             NAME.to_string(),
-//             DECIMALS,
-//             INITIAL_SUPPLY.into(),
-//         );
-//         erc20
-//     }
+    #[test]
+    fn initialization() {
+        let erc20 = setup();
 
-//     #[test]
-//     fn initialization() {
-//         let erc20 = setup();
+        assert_eq!(&erc20.symbol(), SYMBOL);
+        assert_eq!(&erc20.name(), NAME);
+        assert_eq!(erc20.decimals(), DECIMALS);
+        assert_eq!(erc20.total_supply(), INITIAL_SUPPLY.into());
+        assert_events!(
+            erc20,
+            Transfer {
+                from: None,
+                to: Some(TestEnv::get_account(0)),
+                amount: INITIAL_SUPPLY.into()
+            }
+        );
+    }
 
-//         assert_eq!(&erc20.symbol(), SYMBOL);
-//         assert_eq!(&erc20.name(), NAME);
-//         assert_eq!(erc20.decimals(), DECIMALS);
-//         assert_eq!(erc20.total_supply(), INITIAL_SUPPLY.into());
-//         assert_events!(
-//             erc20,
-//             Transfer {
-//                 from: None,
-//                 to: Some(TestEnv::get_account(0)),
-//                 amount: INITIAL_SUPPLY.into()
-//             }
-//         );
-//     }
+    #[test]
+    fn transfer_works() {
+        let erc20 = setup();
+        let (sender, recipient) = (TestEnv::get_account(0), TestEnv::get_account(1));
+        let amount = 1_000.into();
 
-//     #[test]
-//     fn transfer_works() {
-//         let erc20 = setup();
-//         let (sender, recipient) = (TestEnv::get_account(0), TestEnv::get_account(1));
-//         let amount = 1_000.into();
+        erc20.transfer(recipient, amount);
 
-//         erc20.transfer(recipient, amount);
+        assert_eq!(
+            erc20.balance_of(sender),
+            U256::from(INITIAL_SUPPLY) - amount
+        );
+        assert_eq!(erc20.balance_of(recipient), amount);
+        assert_events!(
+            erc20,
+            Transfer {
+                from: Some(sender),
+                to: Some(recipient),
+                amount
+            }
+        );
+    }
 
-//         assert_eq!(
-//             erc20.balance_of(sender),
-//             U256::from(INITIAL_SUPPLY) - amount
-//         );
-//         assert_eq!(erc20.balance_of(recipient), amount);
-//         assert_events!(
-//             erc20,
-//             Transfer {
-//                 from: Some(sender),
-//                 to: Some(recipient),
-//                 amount
-//             }
-//         );
-//     }
+    #[test]
+    fn transfer_error() {
+        let erc20 = setup();
+        let recipient = TestEnv::get_account(1);
+        let amount = U256::from(INITIAL_SUPPLY) + U256::one();
 
-//     #[test]
-//     fn transfer_error() {
-//         let erc20 = setup();
-//         let recipient = TestEnv::get_account(1);
-//         let amount = U256::from(INITIAL_SUPPLY) + U256::one();
+        TestEnv::assert_exception(Error::InsufficientBalance, || {
+            erc20.transfer(recipient, amount)
+        });
+    }
 
-//         TestEnv::assert_exception(Error::InsufficientBalance, || {
-//             erc20.transfer(recipient, amount)
-//         });
-//     }
+    #[test]
+    fn transfer_from_and_approval_work() {
+        let erc20 = setup();
+        let (owner, recipient, spender) = (
+            TestEnv::get_account(0),
+            TestEnv::get_account(1),
+            TestEnv::get_account(2),
+        );
+        let approved_amount = 3_000.into();
+        let transfer_amount = 1_000.into();
 
-//     #[test]
-//     fn transfer_from_and_approval_work() {
-//         let erc20 = setup();
-//         let (owner, recipient, spender) = (
-//             TestEnv::get_account(0),
-//             TestEnv::get_account(1),
-//             TestEnv::get_account(2),
-//         );
-//         let approved_amount = 3_000.into();
-//         let transfer_amount = 1_000.into();
+        // Owner approves Spender.
+        erc20.approve(spender, approved_amount);
 
-//         // Owner approves Spender.
-//         erc20.approve(spender, approved_amount);
+        // Allowance was recorded.
+        assert_eq!(erc20.allowance(owner, spender), approved_amount);
+        assert_events!(erc20, Approval {
+            owner, spender, value: approved_amount
+        });
 
-//         // Allowance was recorded.
-//         assert_eq!(erc20.allowance(owner, spender), approved_amount);
-//         assert_events!(erc20, Approval {
-//             owner, spender, value: approved_amount
-//         });
+        // Spender transfers tokens from Owner to Recipient.
+        TestEnv::set_caller(&spender);
+        erc20.transfer_from(owner, recipient, transfer_amount);
 
-//         // Spender transfers tokens from Owner to Recipient.
-//         TestEnv::set_caller(&spender);
-//         erc20.transfer_from(owner, recipient, transfer_amount);
+        // Tokens are transfered and allowance decremented.
+        assert_eq!(
+            erc20.balance_of(owner),
+            U256::from(INITIAL_SUPPLY) - transfer_amount
+        );
+        assert_eq!(
+            erc20.balance_of(recipient),
+            transfer_amount
+        );
+        assert_events!(
+            erc20,
+            Transfer {
+                from: Some(owner),
+                to: Some(recipient),
+                amount: transfer_amount
+            },
+            Approval {
+                owner, spender, value: approved_amount - transfer_amount
+            }
+        );
+    }
 
-//         // Tokens are transfered and allowance decremented.
-//         assert_eq!(
-//             erc20.balance_of(owner),
-//             U256::from(INITIAL_SUPPLY) - transfer_amount
-//         );
-//         assert_eq!(
-//             erc20.balance_of(recipient),
-//             transfer_amount
-//         );
-//         assert_events!(
-//             erc20,
-//             Transfer {
-//                 from: Some(owner),
-//                 to: Some(recipient),
-//                 amount: transfer_amount
-//             },
-//             Approval {
-//                 owner, spender, value: approved_amount - transfer_amount
-//             }
-//         );
-//     }
+    #[test]
+    fn transfer_from_error() {
+        let erc20 = setup();
+        let (owner, spender) = (
+            TestEnv::get_account(0),
+            TestEnv::get_account(1),
+        );
+        let amount = 1_000.into();
 
-//     #[test]
-//     fn transfer_from_error() {
-//         let erc20 = setup();
-//         let (owner, spender) = (
-//             TestEnv::get_account(0),
-//             TestEnv::get_account(1),
-//         );
-//         let amount = 1_000.into();
-
-//         TestEnv::set_caller(&spender);
-//         TestEnv::assert_exception(
-//             Error::InsufficientAllowance,
-//             || erc20.transfer_from(owner, spender, amount)
-//         );
-//     }
-// }
+        TestEnv::set_caller(&spender);
+        TestEnv::assert_exception(
+            Error::InsufficientAllowance,
+            || erc20.transfer_from(owner, spender, amount)
+        );
+    }
+}

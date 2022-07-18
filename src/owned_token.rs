@@ -1,9 +1,9 @@
 use odra::{
-    types::{Address, U256, OdraError},
+    types::{Address, U256},
     ContractEnv,
 };
 
-use crate::{erc20::{self, Erc20}, ownable::Ownable};
+use crate::{erc20::Erc20, ownable::Ownable};
 
 #[odra::module]
 pub struct OwnedToken {
@@ -21,7 +21,6 @@ impl OwnedToken {
     }
         
     pub fn name(&self) -> String {
-        ContractEnv::revert(erc20::Error::InsufficientAllowance);
         self.erc20.name()
     }
 
@@ -70,11 +69,11 @@ impl OwnedToken {
         self.ownable.ensure_ownership(ContractEnv::caller());
         self.erc20.mint(address, amount);
     }
-
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::{ownable, erc20};
     use odra::{assert_events, types::U256, TestEnv};
     use super::*;
 
@@ -95,67 +94,63 @@ mod tests {
     #[test]
     fn init_works() {
         let token = setup();
-        // let owner = TestEnv::get_account(0);
-        TestEnv::assert_exception(
-            erc20::Error::InsufficientAllowance,
-            || { let _ = token.name(); }
+        let owner = TestEnv::get_account(0);
+        assert_eq!(&token.symbol(), SYMBOL);
+        assert_eq!(token.decimals(), DECIMALS);
+        assert_eq!(token.total_supply(), INITIAL_SUPPLY.into());
+        assert_eq!(token.balance_of(owner), INITIAL_SUPPLY.into());
+        assert_events!(
+            token,
+            erc20::Transfer {
+                from: None,
+                to: Some(owner),
+                amount: INITIAL_SUPPLY.into()
+            },
+            ownable::OwnershipChanged {
+                prev_owner: None,
+                new_owner: owner
+            }
         );
-        // assert_eq!(&token.name(), NAME);
-        // assert_eq!(&token.symbol(), SYMBOL);
-        // assert_eq!(token.decimals(), DECIMALS);
-        // assert_eq!(token.total_supply(), INITIAL_SUPPLY.into());
-        // assert_events!(
-        //     token,
-        //     Transfer {
-        //         from: None,
-        //         to: Some(owner),
-        //         amount: INITIAL_SUPPLY.into()
-        //     },
-        //     OwnershipChanged {
-        //         prev_owner: None,
-        //         new_owner: owner
-        //     }
-        // );
     }
 
-    // #[test]
-    // fn mint_works() {
-    //     let token = setup();
-    //     let recipient = TestEnv::get_account(1);
-    //     let amount = 10.into();
-    //     token.mint(recipient, amount);
-    //     assert_eq!(token.total_supply(), U256::from(INITIAL_SUPPLY) + amount);
-    //     assert_eq!(token.balance_of(recipient), amount);
-    // }
+    #[test]
+    fn mint_works() {
+        let token = setup();
+        let recipient = TestEnv::get_account(1);
+        let amount = 10.into();
+        token.mint(recipient, amount);
+        assert_eq!(token.total_supply(), U256::from(INITIAL_SUPPLY) + amount);
+        assert_eq!(token.balance_of(recipient), amount);
+    }
 
-    // #[test]
-    // fn mint_error() {
-    //     let token = setup();
-    //     let recipient = TestEnv::get_account(1);
-    //     let amount = 10.into();
-    //     TestEnv::set_caller(&recipient);
-    //     TestEnv::assert_exception(
-    //         ownable::Error::NotOwner,
-    //         || token.mint(recipient, amount)
-    //     );
-    // }
+    #[test]
+    fn mint_error() {
+        let token = setup();
+        let recipient = TestEnv::get_account(1);
+        let amount = 10.into();
+        TestEnv::set_caller(&recipient);
+        TestEnv::assert_exception(
+            ownable::Error::NotOwner,
+            || token.mint(recipient, amount)
+        );
+    }
 
-    // #[test]
-    // fn change_ownership_works() {
-    //     let token = setup();
-    //     let new_owner = TestEnv::get_account(1);
-    //     token.change_ownership(new_owner);
-    //     assert_eq!(token.get_owner(), new_owner);
-    // }
+    #[test]
+    fn change_ownership_works() {
+        let token = setup();
+        let new_owner = TestEnv::get_account(1);
+        token.change_ownership(new_owner);
+        assert_eq!(token.get_owner(), new_owner);
+    }
 
-    // #[test]
-    // fn change_ownership_error() {
-    //     let token = setup();
-    //     let new_owner = TestEnv::get_account(1);
-    //     TestEnv::set_caller(&new_owner);
-    //     TestEnv::assert_exception(
-    //         ownable::Error::NotOwner,
-    //         || token.change_ownership(new_owner)
-    //     );
-    // }
+    #[test]
+    fn change_ownership_error() {
+        let token = setup();
+        let new_owner = TestEnv::get_account(1);
+        TestEnv::set_caller(&new_owner);
+        TestEnv::assert_exception(
+            ownable::Error::NotOwner,
+            || token.change_ownership(new_owner)
+        );
+    }
 }
