@@ -1,5 +1,5 @@
 use odra::{
-    types::{event::Event, Address, OdraError},
+    types::{event::Event, Address, ExecutionError, OdraError},
     ContractEnv, Event, Variable,
 };
 
@@ -45,7 +45,7 @@ impl Ownable {
     pub fn get_owner(&self) -> Address {
         match self.owner.get() {
             Some(owner) => owner,
-            None => ContractEnv::revert(Error::OnwerIsNotInitialized)
+            None => ContractEnv::revert(Error::OnwerIsNotInitialized),
         }
     }
 }
@@ -56,13 +56,21 @@ pub enum Error {
     OnwerIsNotInitialized,
 }
 
-impl Into<OdraError> for Error {
-    fn into(self) -> OdraError {
-        match self {
-            Error::NotOwner => OdraError::execution_err(3, "Not an owner"),
-            Error::OnwerIsNotInitialized => OdraError::execution_err(4, "Owner is not initialized."),
-            Error::OwnerIsAleadyInitialzed => OdraError::execution_err(5, "Owner is already initialized."),
+impl From<Error> for ExecutionError {
+    fn from(error: Error) -> Self {
+        match error {
+            Error::NotOwner => ExecutionError::new(3, "Not an owner"),
+            Error::OnwerIsNotInitialized => ExecutionError::new(4, "Owner is not initialized."),
+            Error::OwnerIsAleadyInitialzed => {
+                ExecutionError::new(5, "Owner is already initialized.")
+            }
         }
+    }
+}
+
+impl From<Error> for OdraError {
+    fn from(error: Error) -> Self {
+        OdraError::ExecutionError(error.into())
     }
 }
 
@@ -74,8 +82,8 @@ pub struct OwnershipChanged {
 
 #[cfg(test)]
 mod tests {
-    use odra::{assert_events, TestEnv, types::VmError};
     use super::*;
+    use odra::{assert_events, TestEnv};
 
     fn setup() -> (Address, OwnableRef) {
         let owner = TestEnv::get_account(0);
@@ -97,14 +105,6 @@ mod tests {
     }
 
     #[test]
-    fn second_initialization_fails() {
-        let (owner, ownable) = setup();
-        TestEnv::assert_exception(OdraError::VmError(VmError::InvalidContext), || {
-            ownable.init(owner);
-        });
-    }
-
-    #[test]
     fn owner_can_change_ownership() {
         let (owner, ownable) = setup();
         let new_owner = TestEnv::get_account(1);
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn non_owner_cannot_change_ownership() {
-        let (owner, ownable) = setup();
+        let (_, ownable) = setup();
         let new_owner = TestEnv::get_account(1);
         ownable.change_ownership(new_owner);
         TestEnv::assert_exception(Error::NotOwner, || {
