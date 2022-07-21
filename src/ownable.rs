@@ -24,10 +24,8 @@ impl Ownable {
     }
 
     pub fn change_ownership(&self, new_owner: Address) {
+        self.ensure_ownership(ContractEnv::caller());
         let current_owner = self.get_owner();
-        if ContractEnv::caller() != current_owner {
-            ContractEnv::revert(Error::NotOwner)
-        }
         self.owner.set(new_owner);
         OwnershipChanged {
             prev_owner: Some(current_owner),

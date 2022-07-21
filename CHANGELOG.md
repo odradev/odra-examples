@@ -6,5 +6,6 @@ Changelog for `odra-examples`.
 ### Added
 - `erc20` module.
 - `ownable` module.
-- `owned_token` module
+- `owned_token` module.
+- `balance_checker` module.
 - `CHANGELOG.md` and `README.md` files.

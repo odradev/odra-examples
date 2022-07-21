@@ -4,3 +4,4 @@ name = "odra-examples"
 owned_token = { path = "src/owned_token.rs", name = "owned_token", fqn = "odra_examples::OwnedToken"}
 erc20 = { path = "src/erc20.rs", name = "erc20", fqn = "odra_examples::Erc20"}
 ownable = { path = "src/ownable.rs", name = "ownable", fqn = "odra_examples::Ownable"}
+balance_checker = { path = "src/balance_checker.rs", name = "ownable", fqn = "odra_examples::BalanceChecker"}

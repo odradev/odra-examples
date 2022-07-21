@@ -61,7 +61,6 @@ impl OwnedToken {
     }
 
     pub fn change_ownership(&self, new_owner: Address) {
-        self.ownable.ensure_ownership(ContractEnv::caller());
         self.ownable.change_ownership(new_owner);
     }
 

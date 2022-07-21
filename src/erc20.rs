@@ -63,9 +63,7 @@ impl Erc20 {
     }
 
     pub fn balance_of(&self, address: Address) -> U256 {
-        let a = self.balances.get_or_default(&address);
-        dbg!(a);
-        a
+        self.balances.get_or_default(&address)
     }
 
     pub fn allowance(&self, owner: Address, spender: Address) -> U256 {
