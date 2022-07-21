@@ -72,7 +72,7 @@ impl From<Error> for OdraError {
     }
 }
 
-#[derive(Event, Debug, PartialEq)]
+#[derive(Event, Debug, PartialEq, Eq)]
 pub struct OwnershipChanged {
     pub prev_owner: Option<Address>,
     pub new_owner: Address,

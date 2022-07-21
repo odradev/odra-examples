@@ -114,14 +114,14 @@ impl Erc20 {
     }
 }
 
-#[derive(Event, PartialEq, Debug)]
+#[derive(Event, PartialEq, Eq, Debug)]
 pub struct Transfer {
     pub from: Option<Address>,
     pub to: Option<Address>,
     pub amount: U256,
 }
 
-#[derive(Event, PartialEq, Debug)]
+#[derive(Event, PartialEq, Eq, Debug)]
 pub struct Approval {
     pub owner: Address,
     pub spender: Address,
