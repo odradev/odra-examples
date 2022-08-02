@@ -1,5 +1,6 @@
 use odra::{
-    types::{event::Event, Address, ExecutionError, OdraError, U256},
+    execution_error,
+    types::{event::Event, Address, U256},
     ContractEnv, Event, Mapping, Variable,
 };
 
@@ -128,23 +129,10 @@ pub struct Approval {
     pub value: U256,
 }
 
-pub enum Error {
-    InsufficientBalance,
-    InsufficientAllowance,
-}
-
-impl From<Error> for ExecutionError {
-    fn from(error: Error) -> Self {
-        match error {
-            Error::InsufficientBalance => ExecutionError::new(1, "InsufficientBalance"),
-            Error::InsufficientAllowance => ExecutionError::new(2, "InsufficientAllowance"),
-        }
-    }
-}
-
-impl From<Error> for OdraError {
-    fn from(error: Error) -> Self {
-        OdraError::ExecutionError(error.into())
+execution_error! {
+    pub enum Error {
+        InsufficientBalance => 1,
+        InsufficientAllowance => 2,
     }
 }
 

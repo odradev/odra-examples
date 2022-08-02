@@ -1,5 +1,6 @@
 use odra::{
-    types::{event::Event, Address, ExecutionError, OdraError},
+    execution_error,
+    types::{event::Event, Address},
     ContractEnv, Event, Variable,
 };
 
@@ -13,7 +14,7 @@ impl Ownable {
     #[odra(init)]
     pub fn init(&self, owner: Address) {
         if self.owner.get().is_some() {
-            ContractEnv::revert(Error::OwnerIsAleadyInitialzed)
+            ContractEnv::revert(Error::OwnerIsAlreadyInitialized)
         }
         self.owner.set(owner);
         OwnershipChanged {
@@ -43,32 +44,16 @@ impl Ownable {
     pub fn get_owner(&self) -> Address {
         match self.owner.get() {
             Some(owner) => owner,
-            None => ContractEnv::revert(Error::OnwerIsNotInitialized),
+            None => ContractEnv::revert(Error::OwnerIsNotInitialized),
         }
     }
 }
 
-pub enum Error {
-    NotOwner,
-    OwnerIsAleadyInitialzed,
-    OnwerIsNotInitialized,
-}
-
-impl From<Error> for ExecutionError {
-    fn from(error: Error) -> Self {
-        match error {
-            Error::NotOwner => ExecutionError::new(3, "Not an owner"),
-            Error::OnwerIsNotInitialized => ExecutionError::new(4, "Owner is not initialized."),
-            Error::OwnerIsAleadyInitialzed => {
-                ExecutionError::new(5, "Owner is already initialized.")
-            }
-        }
-    }
-}
-
-impl From<Error> for OdraError {
-    fn from(error: Error) -> Self {
-        OdraError::ExecutionError(error.into())
+execution_error! {
+    pub enum Error {
+        NotOwner => 3,
+        OwnerIsAlreadyInitialized => 4,
+        OwnerIsNotInitialized => 5,
     }
 }
 
