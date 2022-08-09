@@ -1,5 +1,7 @@
-name = "owned_token_template"
+name = "odra-examples"
+
 [contracts]
-owned_token = { path = "src/owned_token.rs", name = "owned_token", fqn = "owned_token_template::OwnedToken"}
-erc20 = { path = "src/erc20.rs", name = "erc20", fqn = "owned_token_template::Erc20"}
-ownable = { path = "src/ownable.rs", name = "ownable", fqn = "owned_token_template::Ownable"}
+owned_token = { path = "src/owned_token.rs", name = "owned_token", fqn = "odra_examples::OwnedToken"}
+erc20 = { path = "src/erc20.rs", name = "erc20", fqn = "odra_examples::Erc20"}
+ownable = { path = "src/ownable.rs", name = "ownable", fqn = "odra_examples::Ownable"}
+balance_checker = { path = "src/balance_checker.rs", name = "ownable", fqn = "odra_examples::BalanceChecker"}

@@ -1,13 +1,16 @@
 [package]
-name = "owned_token_template"
-version = "0.1.0"
+name = "odra-examples"
+version = "0.0.1"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Jakub Płaskonka <kuba@odra.dev>", "Krzysztof Pobiarżyn <krzysztof@odra.dev>", "Maciej Zieliński <maciej@odra.dev>"]
+license = "MIT"
+repository = "https://github.com/odradev/odra-examples"
+description = "Example smart contracts written in Odra."
+keywords = ["wasm", "webassembly", "blockchain"]
+categories = ["wasm", "smart contracts"]
 
 [dependencies]
-# odra = { git = "https://github.com/odradev/odra", default-features = false }
-odra = { path = "../odra/core", default-features = false }
+odra = { git = "https://github.com/odradev/odra", branch = "develop", default-features = false }
 
 [features]
 default = ["mock-vm"]

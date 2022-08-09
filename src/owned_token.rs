@@ -17,9 +17,9 @@ impl OwnedToken {
     pub fn init(&self, name: String, symbol: String, decimals: u8, initial_supply: U256) {
         let deployer = ContractEnv::caller();
         self.ownable.init(deployer);
-        self.erc20.init(name.clone(), symbol, decimals, initial_supply);
+        self.erc20.init(name, symbol, decimals, initial_supply);
     }
-        
+
     pub fn name(&self) -> String {
         self.erc20.name()
     }
@@ -61,7 +61,6 @@ impl OwnedToken {
     }
 
     pub fn change_ownership(&self, new_owner: Address) {
-        self.ownable.ensure_ownership(ContractEnv::caller());
         self.ownable.change_ownership(new_owner);
     }
 
@@ -73,9 +72,9 @@ impl OwnedToken {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ownable, erc20};
-    use odra::{assert_events, types::U256, TestEnv};
     use super::*;
+    use crate::{erc20, ownable};
+    use odra::{assert_events, types::U256, TestEnv};
 
     const NAME: &str = "Plascoin";
     const SYMBOL: &str = "PLS";
@@ -101,14 +100,14 @@ mod tests {
         assert_eq!(token.balance_of(owner), INITIAL_SUPPLY.into());
         assert_events!(
             token,
+            ownable::OwnershipChanged {
+                prev_owner: None,
+                new_owner: owner
+            },
             erc20::Transfer {
                 from: None,
                 to: Some(owner),
                 amount: INITIAL_SUPPLY.into()
-            },
-            ownable::OwnershipChanged {
-                prev_owner: None,
-                new_owner: owner
             }
         );
     }
@@ -129,10 +128,7 @@ mod tests {
         let recipient = TestEnv::get_account(1);
         let amount = 10.into();
         TestEnv::set_caller(&recipient);
-        TestEnv::assert_exception(
-            ownable::Error::NotOwner,
-            || token.mint(recipient, amount)
-        );
+        TestEnv::assert_exception(ownable::Error::NotOwner, || token.mint(recipient, amount));
     }
 
     #[test]
@@ -148,9 +144,8 @@ mod tests {
         let token = setup();
         let new_owner = TestEnv::get_account(1);
         TestEnv::set_caller(&new_owner);
-        TestEnv::assert_exception(
-            ownable::Error::NotOwner,
-            || token.change_ownership(new_owner)
-        );
+        TestEnv::assert_exception(ownable::Error::NotOwner, || {
+            token.change_ownership(new_owner)
+        });
     }
 }

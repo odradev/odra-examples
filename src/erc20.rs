@@ -1,6 +1,7 @@
 use odra::{
-    types::{event::Event, Address, U256, OdraError},
-    ContractEnv, Mapping, Variable, Event,
+    execution_error,
+    types::{event::Event, Address, U256},
+    ContractEnv, Event, Mapping, Variable,
 };
 
 #[odra::module]
@@ -114,55 +115,44 @@ impl Erc20 {
     }
 }
 
-#[derive(Event, PartialEq, Debug)]
+#[derive(Event, PartialEq, Eq, Debug)]
 pub struct Transfer {
     pub from: Option<Address>,
     pub to: Option<Address>,
     pub amount: U256,
 }
 
-#[derive(Event, PartialEq, Debug)]
+#[derive(Event, PartialEq, Eq, Debug)]
 pub struct Approval {
     pub owner: Address,
     pub spender: Address,
     pub value: U256,
 }
 
-pub enum Error {
-    InsufficientBalance,
-    InsufficientAllowance,
-}
-
-impl Into<OdraError> for Error {
-    fn into(self) -> OdraError {
-        match self {
-            Error::InsufficientBalance => {
-                OdraError::execution_err(1, "InsufficientBalance")
-            }
-            Error::InsufficientAllowance => {
-                OdraError::execution_err(2, "InsufficientAllowance")
-            }
-        }
+execution_error! {
+    pub enum Error {
+        InsufficientBalance => 1,
+        InsufficientAllowance => 2,
     }
 }
+
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use odra::{assert_events, TestEnv};
+pub mod tests {
+    use super::{Approval, Erc20, Erc20Ref, Error, Transfer};
+    use odra::{assert_events, types::U256, TestEnv};
 
-    const NAME: &str = "Plascoin";
-    const SYMBOL: &str = "PLS";
-    const DECIMALS: u8 = 10;
-    const INITIAL_SUPPLY: u32 = 10_000;
+    pub const NAME: &str = "Plascoin";
+    pub const SYMBOL: &str = "PLS";
+    pub const DECIMALS: u8 = 10;
+    pub const INITIAL_SUPPLY: u32 = 10_000;
 
-    fn setup() -> Erc20Ref {
-        let erc20 = Erc20::deploy_init(
+    pub fn setup() -> Erc20Ref {
+        Erc20::deploy_init(
             NAME.to_string(),
             SYMBOL.to_string(),
             DECIMALS,
             INITIAL_SUPPLY.into(),
-        );
-        erc20
+        )
     }
 
     #[test]
@@ -233,9 +223,14 @@ mod tests {
 
         // Allowance was recorded.
         assert_eq!(erc20.allowance(owner, spender), approved_amount);
-        assert_events!(erc20, Approval {
-            owner, spender, value: approved_amount
-        });
+        assert_events!(
+            erc20,
+            Approval {
+                owner,
+                spender,
+                value: approved_amount
+            }
+        );
 
         // Spender transfers tokens from Owner to Recipient.
         TestEnv::set_caller(&spender);
@@ -246,19 +241,18 @@ mod tests {
             erc20.balance_of(owner),
             U256::from(INITIAL_SUPPLY) - transfer_amount
         );
-        assert_eq!(
-            erc20.balance_of(recipient),
-            transfer_amount
-        );
+        assert_eq!(erc20.balance_of(recipient), transfer_amount);
         assert_events!(
             erc20,
+            Approval {
+                owner,
+                spender,
+                value: approved_amount - transfer_amount
+            },
             Transfer {
                 from: Some(owner),
                 to: Some(recipient),
                 amount: transfer_amount
-            },
-            Approval {
-                owner, spender, value: approved_amount - transfer_amount
             }
         );
     }
@@ -266,16 +260,12 @@ mod tests {
     #[test]
     fn transfer_from_error() {
         let erc20 = setup();
-        let (owner, spender) = (
-            TestEnv::get_account(0),
-            TestEnv::get_account(1),
-        );
+        let (owner, spender) = (TestEnv::get_account(0), TestEnv::get_account(1));
         let amount = 1_000.into();
 
         TestEnv::set_caller(&spender);
-        TestEnv::assert_exception(
-            Error::InsufficientAllowance,
-            || erc20.transfer_from(owner, spender, amount)
-        );
+        TestEnv::assert_exception(Error::InsufficientAllowance, || {
+            erc20.transfer_from(owner, spender, amount)
+        });
     }
 }

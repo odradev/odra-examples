@@ -1,5 +1,6 @@
 use odra::{
-    types::{event::Event, Address, OdraError},
+    execution_error,
+    types::{event::Event, Address},
     ContractEnv, Event, Variable,
 };
 
@@ -13,7 +14,7 @@ impl Ownable {
     #[odra(init)]
     pub fn init(&self, owner: Address) {
         if self.owner.get().is_some() {
-            ContractEnv::revert(Error::OwnerIsAleadyInitialzed)
+            ContractEnv::revert(Error::OwnerIsAlreadyInitialized)
         }
         self.owner.set(owner);
         OwnershipChanged {
@@ -24,10 +25,8 @@ impl Ownable {
     }
 
     pub fn change_ownership(&self, new_owner: Address) {
+        self.ensure_ownership(ContractEnv::caller());
         let current_owner = self.get_owner();
-        if ContractEnv::caller() != current_owner {
-            ContractEnv::revert(Error::NotOwner)
-        }
         self.owner.set(new_owner);
         OwnershipChanged {
             prev_owner: Some(current_owner),
@@ -45,28 +44,20 @@ impl Ownable {
     pub fn get_owner(&self) -> Address {
         match self.owner.get() {
             Some(owner) => owner,
-            None => ContractEnv::revert(Error::OnwerIsNotInitialized)
+            None => ContractEnv::revert(Error::OwnerIsNotInitialized),
         }
     }
 }
 
-pub enum Error {
-    NotOwner,
-    OwnerIsAleadyInitialzed,
-    OnwerIsNotInitialized,
-}
-
-impl Into<OdraError> for Error {
-    fn into(self) -> OdraError {
-        match self {
-            Error::NotOwner => OdraError::execution_err(3, "Not an owner"),
-            Error::OnwerIsNotInitialized => OdraError::execution_err(4, "Owner is not initialized."),
-            Error::OwnerIsAleadyInitialzed => OdraError::execution_err(5, "Owner is already initialized."),
-        }
+execution_error! {
+    pub enum Error {
+        NotOwner => 3,
+        OwnerIsAlreadyInitialized => 4,
+        OwnerIsNotInitialized => 5,
     }
 }
 
-#[derive(Event, Debug, PartialEq)]
+#[derive(Event, Debug, PartialEq, Eq)]
 pub struct OwnershipChanged {
     pub prev_owner: Option<Address>,
     pub new_owner: Address,
@@ -74,8 +65,8 @@ pub struct OwnershipChanged {
 
 #[cfg(test)]
 mod tests {
-    use odra::{assert_events, TestEnv, types::VmError};
     use super::*;
+    use odra::{assert_events, TestEnv};
 
     fn setup() -> (Address, OwnableRef) {
         let owner = TestEnv::get_account(0);
@@ -97,14 +88,6 @@ mod tests {
     }
 
     #[test]
-    fn second_initialization_fails() {
-        let (owner, ownable) = setup();
-        TestEnv::assert_exception(OdraError::VmError(VmError::InvalidContext), || {
-            ownable.init(owner);
-        });
-    }
-
-    #[test]
     fn owner_can_change_ownership() {
         let (owner, ownable) = setup();
         let new_owner = TestEnv::get_account(1);
@@ -122,7 +105,7 @@ mod tests {
 
     #[test]
     fn non_owner_cannot_change_ownership() {
-        let (owner, ownable) = setup();
+        let (_, ownable) = setup();
         let new_owner = TestEnv::get_account(1);
         ownable.change_ownership(new_owner);
         TestEnv::assert_exception(Error::NotOwner, || {
