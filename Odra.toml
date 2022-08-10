@@ -1,7 +1,30 @@
 name = "odra-examples"
 
-[contracts]
-owned_token = { path = "src/owned_token.rs", name = "owned_token", fqn = "odra_examples::OwnedToken"}
-erc20 = { path = "src/erc20.rs", name = "erc20", fqn = "odra_examples::Erc20"}
-ownable = { path = "src/ownable.rs", name = "ownable", fqn = "odra_examples::Ownable"}
-balance_checker = { path = "src/balance_checker.rs", name = "ownable", fqn = "odra_examples::BalanceChecker"}
+[contracts.owned_token]
+path = "src/owned_token.rs"
+name = "owned_token"
+fqn = "odra_examples::OwnedToken"
+
+[contracts.balance_checker]
+path = "src/balance_checker.rs"
+name = "balance_checker"
+fqn = "odra_examples::BalanceChecker"
+
+[contracts.ownable]
+path = "src/ownable.rs"
+name = "ownable"
+fqn = "odra_examples::Ownable"
+
+[contracts.erc20]
+path = "src/erc20.rs"
+name = "erc20"
+fqn = "odra_examples::Erc20"
+
+[backends.casper]
+name = "casper"
+dependency_name = "casper"
+
+[backends.casper.dependency]
+version = "*"
+features = []
+optional = false
