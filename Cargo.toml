@@ -10,10 +10,19 @@ keywords = ["wasm", "webassembly", "blockchain"]
 categories = ["wasm", "smart contracts"]
 
 [dependencies]
-odra = { version = "0.1.0" , default-features = false }
+odra = { version = "0.2.0", default-features = false }
 
 [features]
 default = ["mock-vm"]
 mock-vm = ["odra/mock-vm"]
 wasm-test = ["odra/wasm-test"]
 wasm = ["odra/wasm"]
+
+[dev-dependencies]
+async-trait = "0.1"
+cucumber = "0.13"
+futures = "0.3"
+
+[[test]]
+name = "erc20" # this should be the same as the filename of your test target
+harness = false  # allows Cucumber to print output instead of libtest

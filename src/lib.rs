@@ -1,7 +1,7 @@
 mod balance_checker;
 // Should be fixed in Odra
 #[allow(clippy::from_over_into)]
-mod erc20;
+pub mod erc20;
 // Should be fixed in Odra
 #[allow(clippy::from_over_into)]
 mod ownable;
