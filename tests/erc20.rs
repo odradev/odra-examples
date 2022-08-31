@@ -68,5 +68,5 @@ fn decimals_is(world: &mut Erc20World, expected: u8) {
 
 // This runs before everything else, so you can setup things here.
 fn main() {
-    futures::executor::block_on(Erc20World::run("tests/features/book"));
+    futures::executor::block_on(Erc20World::run("tests/features/contracts"));
 }
