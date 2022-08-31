@@ -3,6 +3,7 @@ use odra::{
     types::{event::Event, Address, U256},
     ContractEnv, Event, Mapping, Variable,
 };
+use std::fmt::Debug;
 
 #[odra::module]
 pub struct Erc20 {
