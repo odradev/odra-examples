@@ -17,4 +17,4 @@ lint: clippy
 	cargo fmt
 
 clean:
-	cargo clean
+	cargo odra clean

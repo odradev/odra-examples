@@ -7,3 +7,12 @@ Repository contains following modules:
 - `erc20` implements ERC20 token.
 - `owned_token` combines `erc20` and `ownable` into a token with an owner, that can mint tokens.
 - `balance_checker` shows how to call another contract knowing only part of its interface.
+
+## Usage
+
+Use [Cargo Odra](https://github.com/odradev/cargo-odra) or execute the command:
+
+```
+$ make prepare
+$ make test
+```
