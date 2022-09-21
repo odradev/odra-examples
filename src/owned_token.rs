@@ -20,6 +20,7 @@ impl OwnedToken {
         self.erc20.init(name, symbol, decimals, initial_supply);
     }
 
+    /// Return the name of the token.
     pub fn name(&self) -> String {
         self.erc20.name()
     }

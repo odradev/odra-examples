@@ -4,6 +4,9 @@ use odra::{
     ContractEnv, Event, Variable,
 };
 
+/// Contract module which provides a basic access control mechanism, where
+/// there is an account (an owner) that can be granted exclusive access to
+/// specific functions.
 #[odra::module]
 pub struct Ownable {
     owner: Variable<Address>,
@@ -11,6 +14,8 @@ pub struct Ownable {
 
 #[odra::module]
 impl Ownable {
+    /// Initialize `Ownable` module.
+    /// Set `owner` as the owner.
     #[odra(init)]
     pub fn init(&self, owner: Address) {
         if self.owner.get().is_some() {
@@ -24,6 +29,9 @@ impl Ownable {
         .emit();
     }
 
+    /// Change ownership of the module to the `new_owner`.
+    /// Method can only be called by the current owner.
+    /// `OwnershipChanged` event is emitted.
     pub fn change_ownership(&self, new_owner: Address) {
         self.ensure_ownership(ContractEnv::caller());
         let current_owner = self.get_owner();
@@ -35,12 +43,14 @@ impl Ownable {
         .emit();
     }
 
+    /// Check if `address` is an onwer. Revert otherwise.
     pub fn ensure_ownership(&self, address: Address) {
         if Some(address) != self.owner.get() {
             ContractEnv::revert(Error::NotOwner)
         }
     }
 
+    /// Return the current owner or revert if owner not specified. 
     pub fn get_owner(&self) -> Address {
         match self.owner.get() {
             Some(owner) => owner,
@@ -57,6 +67,7 @@ execution_error! {
     }
 }
 
+/// Event emited when the owner was changed.
 #[derive(Event, Debug, PartialEq, Eq)]
 pub struct OwnershipChanged {
     pub prev_owner: Option<Address>,
