@@ -1,15 +1,18 @@
 use odra::types::{Address, U256};
 
+/// Contract that can check a balance of the token.
 #[odra::module]
 pub struct BalanceChecker {}
 
 #[odra::module]
 impl BalanceChecker {
+    /// It checks the balance of the 'account' for the given token.
     pub fn check_balance(&self, token: Address, account: Address) -> U256 {
         TokenRef::at(token).balance_of(account)
     }
 }
 
+/// External contract that has a single 'balance_of' method.
 #[odra::external_contract]
 trait Token {
     fn balance_of(&self, address: Address) -> U256;

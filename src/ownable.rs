@@ -12,6 +12,7 @@ pub struct Ownable {
 #[odra::module]
 impl Ownable {
     #[odra(init)]
+    /// Initiates (?)
     pub fn init(&self, owner: Address) {
         if self.owner.get().is_some() {
             ContractEnv::revert(Error::OwnerIsAlreadyInitialized)
@@ -24,6 +25,7 @@ impl Ownable {
         .emit();
     }
 
+    /// Changes ownership of token. 'new_owner' is set by the 'current_owner'.
     pub fn change_ownership(&self, new_owner: Address) {
         self.ensure_ownership(ContractEnv::caller());
         let current_owner = self.get_owner();
@@ -35,12 +37,14 @@ impl Ownable {
         .emit();
     }
 
+    /// Checks if the given 'address' is the 'owner'.
     pub fn ensure_ownership(&self, address: Address) {
         if Some(address) != self.owner.get() {
             ContractEnv::revert(Error::NotOwner)
         }
     }
 
+    /// Returns current 'owner' of the token.
     pub fn get_owner(&self) -> Address {
         match self.owner.get() {
             Some(owner) => owner,
