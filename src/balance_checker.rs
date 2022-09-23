@@ -15,6 +15,7 @@ impl BalanceChecker {
 /// External contract that has a single 'balance_of' method.
 #[odra::external_contract]
 trait Token {
+    /// Declares 'address' of the balance.
     fn balance_of(&self, address: Address) -> U256;
 }
 

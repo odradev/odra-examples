@@ -12,6 +12,7 @@ pub struct OwnedToken {
 }
 
 #[odra::module]
+/// Initzialization of the token.
 impl OwnedToken {
     #[odra(init)]
     pub fn init(&self, name: String, symbol: String, decimals: u8, initial_supply: U256) {
@@ -30,7 +31,7 @@ impl OwnedToken {
         self.erc20.symbol()
     }
 
-    /// Returns value 8-bit length of the token.
+    /// Returns the decimals value of the token.
     pub fn decimals(&self) -> u8 {
         self.erc20.decimals()
     }
@@ -154,19 +155,21 @@ mod tests {
         let token = setup();
         let recipient = TestEnv::get_account(1);
         let amount = 10.into();
-        token.mint(recipient, amount);
-        assert_eq!(token.total_supply(), U256::from(INITIAL_SUPPLY) + amount);
+        token.burn(recipient, 10.into());
+        assert_eq!(token.total_supply(), U256::from(INITIAL_SUPPLY) - amount);
         assert_eq!(token.balance_of(recipient), amount);
     }
 
+    
     #[test]
     fn burn_error() {
         let token = setup();
         let recipient = TestEnv::get_account(1);
         let amount = 10.into();
         TestEnv::set_caller(&recipient);
-        TestEnv::assert_exception(ownable::Error::NotOwner, || token.mint(recipient, amount));
+        TestEnv::assert_exception(ownable::Error::NotOwner, || token.burn(recipient, amount));
     }
+    
     #[test]
     fn change_ownership_works() {
         let token = setup();

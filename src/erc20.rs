@@ -16,8 +16,8 @@ pub struct Erc20 {
 
 #[odra::module]
 impl Erc20 {
-    #[odra(init)]
     /// Initzialization of the token.
+    #[odra(init)]
     pub fn init(&self, name: String, symbol: String, decimals: u8, initial_supply: U256) {
         let caller = ContractEnv::caller();
         self.name.set(name);
@@ -26,7 +26,8 @@ impl Erc20 {
         self.mint(caller, initial_supply);
     }
 
-    ///  Transfers tokens to the 'recipient' from the 'caller' of the contract.
+    /// Transfers tokens tokens to the `recipient` from the `owner` balance.
+    /// The `caller` needs to be to be approved to spend tokens beforehand.     
     pub fn transfer(&self, recipient: Address, amount: U256) {
         let caller = ContractEnv::caller();
         self.raw_transfer(caller, recipient, amount);
@@ -39,7 +40,7 @@ impl Erc20 {
         self.raw_transfer(owner, recipient, amount);
     }
 
-    /// Allows the spending tokens of the 'owner' by the 'spender'.
+    /// Thanks to this function 'spender' can use tokens of the 'owner'.
     pub fn approve(&self, spender: Address, amount: U256) {
         let owner = ContractEnv::caller();
         self.allowances.set(&(owner, spender), amount);
@@ -61,7 +62,7 @@ impl Erc20 {
         self.symbol.get_or_default()
     }
 
-    /// Returns value 8-bit length of the token.
+    /// Returns the decimals value of the token.
     pub fn decimals(&self) -> u8 {
         self.decimals.get_or_default()
     }
@@ -71,12 +72,12 @@ impl Erc20 {
         self.total_supply.get_or_default()
     }
 
-    /// Returns balance of tokens for every user.
+    /// Returns the amount of tokens for every user.
     pub fn balance_of(&self, address: Address) -> U256 {
         self.balances.get_or_default(&address)
     }
 
-    /// Returns 'amount' the 'owner' allowed the 'spender' to spend in its name.
+    /// Returns 'amount' the 'owner' allowed the 'spender' to spend the tokens.
     pub fn allowance(&self, owner: Address, spender: Address) -> U256 {
         self.allowances.get_or_default(&(owner, spender))
     }
@@ -100,8 +101,6 @@ impl Erc20 {
         .emit();
     }
 
-    /// Spends tokens from the 'allowance'.
-    /// Checks the possibility of execution of 'transfer_from'.
     fn spend_allowance(&self, owner: Address, spender: Address, amount: U256) {
         let key = (owner, spender);
         let allowance = self.allowances.get_or_default(&key);
@@ -117,7 +116,7 @@ impl Erc20 {
         .emit();
     }
 
-    /// Increments a balance of a given 'Address' by the 'amount' of tokens.
+    /// Increments a balance of a given `address` by the `amount` of tokens.    
     pub fn mint(&self, address: Address, amount: U256) {
         self.balances.add(&address, amount);
         self.total_supply.add(amount);
@@ -129,7 +128,7 @@ impl Erc20 {
         .emit();
     }
 
-    /// Decrements the balance of every user by a given 'amount' of tokens.
+    /// Decrements the balance of the 'address' by a given 'amount' of tokens.
     pub fn burn(&self, address: Address, amount: U256) {
         self.balances.subtract(&address, amount);
         self.total_supply.subtract(amount);
@@ -234,8 +233,6 @@ pub mod tests {
             erc20.transfer(recipient, amount)
         });
     }
-
-
 
     #[test]
     fn transfer_from_and_approval_work() {
