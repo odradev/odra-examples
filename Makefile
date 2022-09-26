@@ -1,5 +1,4 @@
 prepare:
-	sudo apt install wabt
 	rustup target add wasm32-unknown-unknown
 	cargo install cargo-odra
 
